@@ -1,0 +1,13 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: anomaly-detection
+  namespace: anomaly-detection
+spec:
+  to:
+    kind: Service
+    name: anomaly-detection
+  port:
+    targetPort: 8080
+  tls:
+    termination: edge
