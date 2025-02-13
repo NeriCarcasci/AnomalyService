@@ -5,11 +5,12 @@ import requests
 BASE_URL = "https://anomaly-detection-anomaly-detection.apps.rosa.u4j8k6a7r8e1b0z.pkym.p3.openshiftapps.com"
 
 USER_TOKEN = 1234
-RUN_ID = "cloud_test_run"
+RUN_ID = "cloud_test"
 
 @pytest.fixture
 def setup_cloud_model():
-    """Fixture to fit a model on the cloud before testing."""
+    """Fixture to fit a model on the cloud before testing and clean up afterward."""
+    # Setup our model
     response = requests.post(f"{BASE_URL}/fit", json={
         "user_token": USER_TOKEN,
         "run_id": RUN_ID,
@@ -17,10 +18,18 @@ def setup_cloud_model():
     })
     assert response.status_code == 200, f"Model fit failed: {response.text}"
 
+    yield  # this is when tests will be run
+
+    # We need to clean up files after we run tests
+    delete_response = requests.delete(f"{BASE_URL}/delete-data/{USER_TOKEN}/{RUN_ID}")
+    assert delete_response.status_code == 200, f"Data deletion failed: {delete_response.text}"
+
+
 def test_fit_model_with_empty_data():
     response = requests.post(f"{BASE_URL}/fit", json={"user_token": USER_TOKEN, "training_data": []})
     assert response.status_code == 400
     assert "Invalid training data format" in response.json()["detail"]
+
 
 def test_detect_anomalies_valid(setup_cloud_model):
     response = requests.post(f"{BASE_URL}/detect-anomalies", json={
@@ -32,6 +41,7 @@ def test_detect_anomalies_valid(setup_cloud_model):
     data = response.json()
     assert "result" in data
     assert "anomaly_detected" in data["result"]
+
 
 def test_detect_anomalies_obvious_anomaly(setup_cloud_model):
     response = requests.post(f"{BASE_URL}/detect-anomalies", json={
@@ -45,11 +55,7 @@ def test_detect_anomalies_obvious_anomaly(setup_cloud_model):
     assert data["result"]["anomaly_detected"] == True  
 
 
-
-
-# ------------- Reasonably not useful tests
-
-
+# ------------ B ------------
 def test_detect_anomalies_nonexistent_model():
     response = requests.post(f"{BASE_URL}/detect-anomalies", json={
         "user_token": 9999,
@@ -58,11 +64,6 @@ def test_detect_anomalies_nonexistent_model():
     })
     assert response.status_code == 404
     assert "No fitted model found" in response.json()["detail"]
-
-def test_delete_data_found(setup_cloud_model):
-    response = requests.delete(f"{BASE_URL}/delete-data/{USER_TOKEN}/{RUN_ID}")
-    assert response.status_code == 200
-    assert "Data successfully deleted." in response.json()["message"]
 
 def test_delete_data_not_found():
     response = requests.delete(f"{BASE_URL}/delete-data/{USER_TOKEN}/non_existent")

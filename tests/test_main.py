@@ -16,6 +16,7 @@ def setup_model():
         "training_data": [[10, 20, 30], [15, 25, 35], [12, 22, 32]]
     })
 
+
 def test_fit_model_with_empty_data():
     response = client.post("/fit", json={"user_token": USER_TOKEN, "training_data": []})
     assert response.status_code == 400
