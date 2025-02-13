@@ -21,12 +21,16 @@ The steps I used from 0 to working deployment
 git clone https://github.com/NeriCarcasci/AnomalyService.git
 cd AnomalyService
 ```
+if changing the python then rebuild container image with
+` podman build --platform linux/amd64 -t quay.io/ncarcasc/anomaly-detection:latest .`
+where the --platform is needed if you are building for Openshift coming from a MacOS. And then publish to quay.io with
+` podman push quay.io/ncarcasc/anomaly-detection:latest`
 
 #### **2️⃣ Create a virtual environment & install dependencies**
 ```sh
 python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
+source venv/bin/activate
+pip install -r requirements.txt # or one by one as mentioned in docker file
 ```
 
 #### **3️⃣ Setup to OpenShift**
@@ -41,7 +45,8 @@ oc new-project anomaly-detection
 oc set env deployment/anomaly-detection MONGO_URI="mongodb+srv://USERNAME:PASSWORD@maincluster.g70a1.mongodb.net/DATABASE?retryWrites=true&w=majority&appName=maincluster" -n anomaly-detection
 ```
 
-#### **5️⃣ Apply YAML**
+#### **5️⃣ Apply YAML to openshift**
+using `oc apply -f [file]`:
 1. Apply `deployment.yaml`
 2. Apply `service.yaml`
 3. Apply `route.yaml`
