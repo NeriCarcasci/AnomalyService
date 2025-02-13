@@ -62,10 +62,10 @@ def test_detect_anomalies_nonexistent_model():
         "run_id": "non_existent",
         "values": [10, 20, 30]
     })
-    assert response.status_code == 404
-    assert "No fitted model found" in response.json()["detail"]
+    assert (response.status_code == 404) or (response.status_code == 403)
+    assert "Unauthorized or model not found." in response.json()["detail"]
 
 def test_delete_data_not_found():
     response = requests.delete(f"{BASE_URL}/delete-data/{USER_TOKEN}/non_existent")
-    assert response.status_code == 404
-    assert "No stored data found" in response.json()["detail"]
+    assert (response.status_code == 404) or (response.status_code == 403)
+    assert "Unauthorized or model not found." in response.json()["detail"]

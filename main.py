@@ -2,10 +2,10 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import numpy as np
 import uuid
-import json
 from scipy.stats import norm
 from pymongo import MongoClient
 import os
+import pandas as pd
 
 # ----------------------[ MongoDB Configuration ]----------------------
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")  # Use env variable or local MongoDB
@@ -76,9 +76,10 @@ def fit_model(request: TrainingDataRequest):
 
     return {"message": "Model fitted and saved.", "run_id": run_id}
 
+
 @app.post("/detect-anomalies")
 def detect_anomalies(request: DataPoint):
-    """Compute anomaly score for a given data point using stored models."""
+    """Compute anomaly score for a given data point using stored models (NumPy & Pandas version)."""
     model_data = load_model(request.user_token, request.run_id)
 
     metric_mean = np.array(model_data["means"])
@@ -92,24 +93,28 @@ def detect_anomalies(request: DataPoint):
     if len(x) != len(metric_mean):
         raise HTTPException(status_code=400, detail="Input data dimensions do not match training data.")
 
-    # Compute Z-Score
-    z_scores = (x - metric_mean) / metric_stds
+    # Compute Z-Score (Handle division by zero)
+    z_scores = np.where(metric_stds > 0, (x - metric_mean) / metric_stds, 0)
     anomaly_score_z = np.max(np.abs(z_scores))
 
-    # Compute Gaussian Probability
-    prob = norm(metric_mean, metric_stds).pdf(x)
-    anomaly_score_prob = np.min(prob)
+    # Compute Probability Density (Avoid SciPy Issues)
+    variance = np.square(metric_stds)
+    probability_density = np.exp(-np.square(x - metric_mean) / (2 * variance)) / (np.sqrt(2 * np.pi * variance))
+    anomaly_score_prob = np.min(probability_density)
 
-    # Compute Normalized Probability
-    normalized_probability = anomaly_score_prob / norm(metric_mean, metric_stds).pdf(metric_mean)
+    # Compute Mahalanobis Distance (Alternative to Gaussian Probability)
+    cov_matrix = np.cov(np.vstack([metric_mean, x]), rowvar=False)
+    inv_cov_matrix = np.linalg.pinv(cov_matrix)  # Use pseudo-inverse to avoid singular matrices
+    diff = x - metric_mean
+    mahalanobis_distance = np.sqrt(np.dot(np.dot(diff, inv_cov_matrix), diff.T))
 
     # Determine if anomaly is detected
-    anomaly_detected = (anomaly_score_z > 3) or (anomaly_score_prob < 0.01)
+    anomaly_detected = (anomaly_score_z > 3) or (anomaly_score_prob < 0.01) or (mahalanobis_distance > 3)
 
     return {"result": {
         "z_score_anomaly": float(anomaly_score_z),
         "gaussian_probability": float(anomaly_score_prob),
-        "normalized_probability": float(normalized_probability),
+        "mahalanobis_distance": float(mahalanobis_distance),
         "anomaly_detected": bool(anomaly_detected)
     }}
 
