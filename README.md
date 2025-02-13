@@ -287,6 +287,7 @@ spec:
 <br>
 
 ## ** Some other useful commands I used**
+
 | Command | Description |
 |---------|------------|
 | `oc logs -f deployment/anomaly-detection -n anomaly-detection` | View logs live |
