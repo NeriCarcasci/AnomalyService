@@ -2,9 +2,9 @@
 
 ## **Overview**
 This repository contains an anomaly detection API built with FastAPI, MongoDB, and OpenShift.
-
+<br>
 ---
-
+<br>
 ## **1. Setup**
 The steps I used from 0 to working deployment
 
@@ -54,7 +54,10 @@ Check logs if things explode:
 ```sh
 oc logs -f deployment/anomaly-detection -n anomaly-detection
 ```
+
+<br>
 ---
+<br>
 
 ## **2. Debug - Problems Encountered**
 If tests fail, comment out testing functions. They are clearly the problem. 😎
@@ -67,10 +70,10 @@ If tests fail, comment out testing functions. They are clearly the problem. 😎
 | [3] | SSL Handshake Failure |
 | [4] | Internal Server Error on `/detect-anomalies` |
 
-See **Appendix A** for details on each issue and how to fix them.
-
+See appendix for details on each issue and how to fix them.
+<br>
 ---
-
+<br>
 ## **3. Documentation**
 
 ### **3.1 Code Structure**
@@ -82,45 +85,9 @@ See **Appendix A** for details on each issue and how to fix them.
 ### **3.2 Why These Choices?**
 ✔ **NumPy over SciPy** → Avoid `norm.pdf()` and maths issues that kept me up at night 
 ✔ **MongoDB instead of MinIO** → Persistence without waiting 2 hours for minIO operator to install, google firebase is okay too
-
+<br>
 ---
-
-## **4. Useful Commands Learned Along the Way**
-| Command | Description |
-|---------|------------|
-| `oc logs -f deployment/anomaly-detection -n anomaly-detection` | View logs live |
-| `oc exec -it <pod-name> -- python3` | Debug inside the pod |
-| `oc rollout restart deployment/anomaly-detection -n anomaly-detection` | Redeploy after changes |
-
----
-
-## **Appendix A: Debugging Errors**
-
-### **[1] MongoDB Authentication Failure**
-- **What it was:** Connection refused, authentication errors or timeout issues if not properly error handled.
-- **Fix:** Whitelist OpenShift IP in MongoDB, get IP of pod through terminal, or set free access.
-
-### **[2] OpenShift Route Not Working**
-- **What it was:** Requests timeout externally but work inside the pod.
-- **Fix:** Ensure `oc expose svc/anomaly-detection` exposes **port 8080**, not **80**.
-
-### **[3] SSL Handshake Failure**
-- **What it was:** PyMongo throwing `SSL: TLSV1_ALERT_INTERNAL_ERROR`
-- **Fix:** Install latest OpenSSL, export `SSL_CERT_FILE` path.
-
-### **[4] Internal Server Error on `/detect-anomalies`**
-- **What it was:** NumPy throwing weird scalar conversion errors.
-- **Fix:** Replaced `norm.pdf()` with explicit NumPy calculations.
-
-
-
-
-
-
-
-
-
-
+<br>
 # 📌 OpenShift Deployment YAML Explained
 
 ## **1️⃣ Deployment (`deployment.yaml`)**
@@ -270,5 +237,32 @@ spec:
 ```
 - Enables **TLS (HTTPS) encryption** with **Edge Termination**:
   - **Edge termination** → The connection is encrypted **until OpenShift**, but then it becomes **plain HTTP inside the cluster**.
-
+<br>
 ---
+<br>
+## **Appendix A: Debugging Errors**
+<br>
+<br>
+### **[1] MongoDB Authentication Failure**
+- **What it was:** Connection refused, authentication errors or timeout issues if not properly error handled.
+- **Fix:** Whitelist OpenShift IP in MongoDB, get IP of pod through terminal, or set free access.
+<br>
+### **[2] OpenShift Route Not Working**
+- **What it was:** Requests timeout externally but work inside the pod.
+- **Fix:** Ensure `oc expose svc/anomaly-detection` exposes **port 8080**, not **80**.
+<br>
+### **[3] SSL Handshake Failure**
+- **What it was:** PyMongo throwing `SSL: TLSV1_ALERT_INTERNAL_ERROR`
+- **Fix:** Install latest OpenSSL, export `SSL_CERT_FILE` path.
+<br>
+### **[4] Internal Server Error on `/detect-anomalies`**
+- **What it was:** NumPy throwing weird scalar conversion errors.
+- **Fix:** Replaced `norm.pdf()` with explicit NumPy calculations.
+<br>
+## ** Useful Commands Learned Along the Way**
+| Command | Description |
+|---------|------------|
+| `oc logs -f deployment/anomaly-detection -n anomaly-detection` | View logs live |
+| `oc exec -it <pod-name> -- python3` | Debug inside the pod |
+| `oc rollout restart deployment/anomaly-detection -n anomaly-detection` | Redeploy after changes |
+
