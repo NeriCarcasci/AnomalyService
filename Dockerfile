@@ -5,7 +5,7 @@ WORKDIR /app
 
 COPY . /app
 
-RUN pip install --no-cache-dir fastapi uvicorn numpy scipy pydantic pandas minio
+RUN pip install --no-cache-dir fastapi uvicorn numpy scipy pydantic pandas pymongo
 
 EXPOSE 8080
 

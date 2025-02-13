@@ -45,7 +45,7 @@ This repository contains a FastAPI-based anomaly detection service designed to p
 ### OpenShift deployment
 1. Build and push the container:
    ```bash
-   podman build -t quay.io/<your-username>/anomaly-detection:latest .
+   podman build --platform linux/amd64 -t quay.io/your-username/anomaly-detection:latest .
    podman push quay.io/<your-username>/anomaly-detection:latest
    ```
 2. Deploy the service in OpenShift: Apply the following in order `deployment.yaml`, `service.yaml`, and `route.yaml`. (change yaml to suit specific deployment - i.e. container image)
@@ -70,3 +70,4 @@ if tests fail comment out testing functions, they are clearly the problem. 😎
 
 
 `oc delete pod -l app=anomaly-detection -n anomaly-detection`
+`oc rollout restart deployment anomaly-detection -n anomaly-detection`

@@ -4,22 +4,20 @@ import numpy as np
 import uuid
 import json
 from scipy.stats import norm
-from minio import Minio
+from pymongo import MongoClient
+import os
+
+# ----------------------[ MongoDB Configuration ]----------------------
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")  # Use env variable or local MongoDB
+client = MongoClient(MONGO_URI)
+db = client["anomalydetection"]  # Database name
+models_collection = db["models"]  # Collection to store models
 
 
 # Initialize FastAPI app
 app = FastAPI()
 
-# MinIO Configuration
-MINIO_CLIENT = Minio(
-    "minio-service:9000",
-    access_key="minioadmin",
-    secret_key="minioadmin",
-    secure=False  # Change to True if using TLS
-)
-BUCKET_NAME = "anomaly-models"
-
-# -----------------------| Data Models |-----------------------
+# ----------------------[ Data Models ]----------------------
 class TrainingDataRequest(BaseModel):
     user_token: int
     run_id: str = None
@@ -30,50 +28,35 @@ class DataPoint(BaseModel):
     run_id: str
     values: list[float]
 
-# ----------------------| File Handling |----------------------
-# Ensure minio is aliv
-try:
-    MINIO_CLIENT.list_buckets()
-    print("- MinIO connection successful")
-except Exception as e:
-    print(f"- MinIO connection failed: {e}")
-    raise RuntimeError("MinIO is unreachable! Make sure it is running.")
-if not MINIO_CLIENT.bucket_exists(BUCKET_NAME):
-    MINIO_CLIENT.make_bucket(BUCKET_NAME)
-
+# ----------------------| MongoDB Model Handling |----------------------
 def save_model(user_token: int, run_id: str, model_data: dict):
-    """Save model to MinIO."""
-    object_name = f"{user_token}/{run_id}.json"
-    json_data = json.dumps(model_data).encode("utf-8")
+    """Save model to MongoDB with user access control."""
     try:
-        MINIO_CLIENT.put_object(BUCKET_NAME, object_name, data=json_data, length=len(json_data), content_type="application/json")
+        models_collection.update_one(
+            {"run_id": run_id},  # Find document by run_id
+            {"$set": {"model_data": model_data}, "$addToSet": {"access": user_token}},  # Add user if not already in access
+            upsert=True
+        )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to save model to MinIO: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to save model to MongoDB: {str(e)}")
 
 def load_model(user_token: int, run_id: str) -> dict:
-    """Load model from MinIO."""
-    object_name = f"{user_token}/{run_id}.json"
-    try:
-        response = MINIO_CLIENT.get_object(BUCKET_NAME, object_name)
-        model_data = json.loads(response.read().decode("utf-8"))  
-        response.close()
-        response.release_conn() 
-        return model_data
-    except Exception as e:
-        raise HTTPException(status_code=404, detail=f"Error loading model: {str(e)}")
-    
-def delete_model(user_token: int, run_id: str):
-    """Delete model from MinIO."""
-    object_name = f"{user_token}/{run_id}.json"
-    try:
-        MINIO_CLIENT.remove_object(BUCKET_NAME, object_name)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to delete model from MinIO: {str(e)}")
-# -----------------------| API Endpoints |-----------------------
+    """Load model from MongoDB with access control."""
+    model = models_collection.find_one({"run_id": run_id, "access": user_token})  # Ensure user has access
+    if not model:
+        raise HTTPException(status_code=403, detail="Unauthorized or model not found.")
+    return model["model_data"]
 
+def delete_model(user_token: int, run_id: str):
+    """Delete model from MongoDB (only if user has access)."""
+    result = models_collection.delete_one({"run_id": run_id, "access": user_token})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=403, detail="Unauthorized or model not found.")
+
+# ----------------------| API Endpoints |----------------------
 @app.post("/fit")
 def fit_model(request: TrainingDataRequest):
-    """Fit an anomaly detection model to training data and store it."""
+    """Fit an anomaly detection model and store it with access control."""
     if not request.training_data or not all(isinstance(row, list) and all(isinstance(val, (int, float)) for val in row) for row in request.training_data):
         raise HTTPException(status_code=400, detail="Invalid training data format.")
 
@@ -123,17 +106,15 @@ def detect_anomalies(request: DataPoint):
     # Determine if anomaly is detected
     anomaly_detected = (anomaly_score_z > 3) or (anomaly_score_prob < 0.01)
 
-    result = {
+    return {"result": {
         "z_score_anomaly": float(anomaly_score_z),
         "gaussian_probability": float(anomaly_score_prob),
         "normalized_probability": float(normalized_probability),
-        "anomaly_detected": bool(anomaly_detected)  
-    }
-
-    return {"result": result}
+        "anomaly_detected": bool(anomaly_detected)
+    }}
 
 @app.delete("/delete-data/{user_token}/{run_id}")
 def delete_data(user_token: int, run_id: str):
-    """Delete stored model and data for a given user and run ID."""
+    """Delete stored model and data for a given user and run ID (only if user has access)."""
     delete_model(user_token, run_id)
     return {"message": "Data successfully deleted."}
