@@ -2,9 +2,11 @@
 
 ## **Overview**
 This repository contains an anomaly detection API built with FastAPI, MongoDB, and OpenShift.
+
 <br>
 ---
 <br>
+
 ## **1. Setup**
 The steps I used from 0 to working deployment
 
