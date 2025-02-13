@@ -4,6 +4,7 @@
 This repository contains an anomaly detection API built with FastAPI, MongoDB, and OpenShift.
 
 <br>
+
 <br>
 
 ## **1. Setup**
@@ -99,6 +100,7 @@ See appendix for details on each issue and how to fix them.
 ---
 
 <br>
+
 # 📌 OpenShift Deployment YAML Explained
 
 ## **1️⃣ Deployment (`deployment.yaml`)**
