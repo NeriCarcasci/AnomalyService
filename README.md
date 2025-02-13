@@ -65,3 +65,8 @@ pytest tests/test_AnomalyDetection.py -v
 
 
 if tests fail comment out testing functions, they are clearly the problem. 😎
+
+
+
+
+`oc delete pod -l app=anomaly-detection -n anomaly-detection`
