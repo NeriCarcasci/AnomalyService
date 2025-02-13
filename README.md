@@ -82,6 +82,7 @@ See appendix for details on each issue and how to fix them.
 <br>
 ---
 <br>
+
 ## **3. Documentation**
 
 ### **3.1 Code Structure**
@@ -252,26 +253,38 @@ spec:
 ---
 
 <br>
+
 ## **Appendix A: Debugging Errors**
+
 <br>
+
 <br>
+
 ### **[1] MongoDB Authentication Failure**
 - **What it was:** Connection refused, authentication errors or timeout issues if not properly error handled.
 - **Fix:** Whitelist OpenShift IP in MongoDB, get IP of pod through terminal, or set free access.
+  
 <br>
+
 ### **[2] OpenShift Route Not Working**
 - **What it was:** Requests timeout externally but work inside the pod.
 - **Fix:** Ensure `oc expose svc/anomaly-detection` exposes **port 8080**, not **80**.
+  
 <br>
+
 ### **[3] SSL Handshake Failure**
 - **What it was:** PyMongo throwing `SSL: TLSV1_ALERT_INTERNAL_ERROR`
 - **Fix:** Install latest OpenSSL, export `SSL_CERT_FILE` path.
+  
 <br>
+
 ### **[4] Internal Server Error on `/detect-anomalies`**
 - **What it was:** NumPy throwing weird scalar conversion errors.
 - **Fix:** Replaced `norm.pdf()` with explicit NumPy calculations.
+  
 <br>
-## ** Useful Commands Learned Along the Way**
+
+## ** Some other useful commands I used**
 | Command | Description |
 |---------|------------|
 | `oc logs -f deployment/anomaly-detection -n anomaly-detection` | View logs live |
