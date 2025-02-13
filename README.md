@@ -4,7 +4,6 @@
 This repository contains an anomaly detection API built with FastAPI, MongoDB, and OpenShift.
 
 <br>
----
 <br>
 
 ## **1. Setup**
@@ -58,7 +57,9 @@ oc logs -f deployment/anomaly-detection -n anomaly-detection
 ```
 
 <br>
+
 ---
+
 <br>
 
 ## **2. Debug - Problems Encountered**
@@ -88,7 +89,9 @@ See appendix for details on each issue and how to fix them.
 ✔ **NumPy over SciPy** → Avoid `norm.pdf()` and maths issues that kept me up at night 
 ✔ **MongoDB instead of MinIO** → Persistence without waiting 2 hours for minIO operator to install, google firebase is okay too
 <br>
+
 ---
+
 <br>
 # 📌 OpenShift Deployment YAML Explained
 
@@ -240,7 +243,9 @@ spec:
 - Enables **TLS (HTTPS) encryption** with **Edge Termination**:
   - **Edge termination** → The connection is encrypted **until OpenShift**, but then it becomes **plain HTTP inside the cluster**.
 <br>
+
 ---
+
 <br>
 ## **Appendix A: Debugging Errors**
 <br>
