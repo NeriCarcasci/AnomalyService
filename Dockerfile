@@ -5,8 +5,7 @@ WORKDIR /app
 
 COPY . /app
 
-RUN pip install --no-cache-dir fastapi uvicorn numpy scipy pydantic pandas pymongo
-
+RUN pip install --no-cache-dir -r requirements.txt
 EXPOSE 8080
 
 # Command to run the FastAPI app

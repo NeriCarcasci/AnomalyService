@@ -1,0 +1,13 @@
+
+FROM python:3.10
+
+WORKDIR /app
+
+COPY . .
+
+RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install pytest requests  # Install additional test dependencies
+
+ENV MONGO_URI="mongodb://mongo:27017/anomalydetection"
+
+CMD ["pytest", "tests/"]

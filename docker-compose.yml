@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  anomaly-detection:
+    build:
+      context: .
+      dockerfile: Dockerfile.test  
+    container_name: anomaly-service
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/anomalydetection  
+    depends_on:
+      - mongo
+    networks:
+      - test-net
+
+  mongo:
+    image: mongo:latest
+    container_name: mongo-db
+    ports:
+      - "27017:27017"  
+    networks:
+      - test-net
+
+networks:
+  test-net:
+    driver: bridge

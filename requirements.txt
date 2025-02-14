@@ -1,0 +1,9 @@
+# dependencies
+fastapi
+uvicorn
+numpy
+scipy
+pandas
+pymongo
+pytest
+requests
