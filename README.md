@@ -72,6 +72,7 @@ oc logs -f deployment/anomaly-detection -n anomaly-detection
 If tests fail, comment out testing functions. They are clearly the problem. 😎
 
 ### **Common Errors & Fixes**
+
 | Error ID | Error Title |
 |----------|------------|
 | [1] | MongoDB Authentication Failure |
@@ -79,7 +80,8 @@ If tests fail, comment out testing functions. They are clearly the problem. 😎
 | [3] | SSL Handshake Failure |
 | [4] | Internal Server Error on `/detect-anomalies` |
 
-See appendix for details on each issue and how to fix them.
+See appendix for more details
+
 <br>
 ---
 <br>
