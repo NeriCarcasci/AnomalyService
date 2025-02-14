@@ -100,9 +100,9 @@ See appendix for more details
 
 <br>
 
-# 📌 OpenShift Deployment YAML Explained
+# OpenShift Deployment YAML Explained
 
-## **1️⃣ Deployment (`deployment.yaml`)**
+## **Deployment (`deployment.yaml`)**
 This file defines the **OpenShift Deployment** for the `anomaly-detection` service.
 This deployment **runs a single instance** of `anomaly-detection`, using the latest container image from Quay.io, **exposing port 8080**.
 I broke it down into different parts to understand it.
@@ -167,7 +167,7 @@ spec:
   - `memory: "512Mi"` → **512 Megabytes** of RAM.
 
 
-## **2️⃣ Service (`service.yaml`)**
+## **Service (`service.yaml`)**
 
 The **Service (`service.yaml`)** exposes `anomaly-detection` **inside OpenShift** on port **80 → 8080**.
 
@@ -210,7 +210,7 @@ spec:
 
 ---
 
-## **3️⃣ Route (`route.yaml`)**
+## **Route (`route.yaml`)**
 The **Route (`route.yaml`)** exposes `anomaly-detection` **externally** over **HTTPS (Edge Termination)**.
 ### **What is this?**
 An **OpenShift Route** exposes the application to the external world via a public URL.
