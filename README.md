@@ -64,9 +64,6 @@ oc logs -f deployment/anomaly-detection -n anomaly-detection
 
 <br>
 
----
-
-<br>
 
 ## **2. Debug - Problems Encountered**
 If tests fail, comment out testing functions. They are clearly the problem. 😎
