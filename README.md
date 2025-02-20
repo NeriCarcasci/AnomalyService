@@ -85,11 +85,17 @@ See appendix for more details
 
 ## **3. Documentation**
 
+## **3. Documentation**
+
 ### **3.1 Code Structure**
-- `main.py`: API endpoints & logic
+- `app.py`: Main application entry point
+- `routes.py`: API endpoints & logic
 - `models.py`: Data models for API requests
-- `db.py`: MongoDB connection functions
-- `tests/`: Unit tests for API functions
+- `db.py`: Database connection functions
+- `services/`: Business logic and processing functions
+- `metrics/`: Fairness and evaluation metrics implementations
+- `tests/`: Unit tests for API functions and services
+
 
 ### **3.2 Why These Choices?**
 ✔ **NumPy over SciPy** → Avoid `norm.pdf()` and maths issues that kept me up at night 
