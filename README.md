@@ -1,301 +1,179 @@
 # Anomaly Detection Service
 
 ## **Overview**
-This repository contains an anomaly detection API built with FastAPI, MongoDB, and OpenShift.
+This repository contains an **anomaly detection API** built with **FastAPI**, **MongoDB**, and **OpenShift**. The goal is to provide a scalable and efficient anomaly detection service that can be deployed on OpenShift while maintaining flexibility in storage options (MongoDB Atlas, Google Firestore, or local MongoDB).
 
-<br>
-
-<br>
+---
 
 ## **1. Setup**
-The steps I used from 0 to working deployment
+A step-by-step breakdown of getting from zero to a working deployment.
 
 ### **1.1 Prerequisites**
-- Python 3.10+ (Homebrew python is the worse thing I have witnessed)
+- Python **3.10+** (avoid Homebrew Python—it’s a disaster waiting to happen)
 - OpenShift CLI (`oc`)
-- MongoDB Atlas account (or local MongoDB instance) -- Google Firestore can be used too
+- A **MongoDB Atlas account** (or a local MongoDB instance). Google Firestore can be swapped in if needed.
 - FastAPI & dependencies
 
 ### **1.2 Installation**
-#### **1️⃣ Clone the repository**
+#### **1️⃣ Clone the Repository**
 ```sh
 git clone https://github.com/NeriCarcasci/AnomalyService.git
 cd AnomalyService
 ```
-if changing the python then rebuild container image with
-` podman build --platform linux/amd64 -t quay.io/ncarcasc/anomaly-detection:latest .`
-where the --platform is needed if you are building for Openshift coming from a MacOS. And then publish to quay.io with
-` podman push quay.io/ncarcasc/anomaly-detection:latest`
+If making Python changes, rebuild and publish the container:
+```sh
+podman build --platform linux/amd64 -t quay.io/ncarcasc/anomaly-detection:latest .
+podman push quay.io/ncarcasc/anomaly-detection:latest
+```
+The `--platform` flag is crucial when building on macOS for OpenShift.
 
-#### **2️⃣ Create a virtual environment & install dependencies**
+#### **2️⃣ Create a Virtual Environment & Install Dependencies**
 ```sh
 python3 -m venv venv
 source venv/bin/activate
-pip install -r requirements.txt # or one by one as mentioned in docker file
+pip install -r requirements.txt  # Or install manually as per the Dockerfile
 ```
 
-#### **3️⃣ Setup to OpenShift**
+#### **3️⃣ Deploy to OpenShift**
 ```sh
 oc new-project anomaly-detection
 ```
 
-#### **4️⃣ Setup MongoDB Connection**
-1. If using MongoDB Atlas, **whitelist your OpenShift cluster's IP**.
-2. Save your MongoDB URI as a env viariable (or modify `MONGO_URI` in `main.py`):
+#### **4️⃣ Configure MongoDB Connection**
+1. **If using MongoDB Atlas**, whitelist your OpenShift cluster’s IP.
+2. **Set MongoDB URI as an environment variable** (or update `MONGO_URI` in `main.py`):
 ```sh
-oc set env deployment/anomaly-detection MONGO_URI="mongodb+srv://USERNAME:PASSWORD@maincluster.g70a1.mongodb.net/DATABASE?retryWrites=true&w=majority&appName=maincluster" -n anomaly-detection
+oc set env deployment/anomaly-detection MONGO_URI="mongodb+srv://USERNAME:PASSWORD@maincluster.mongodb.net/DATABASE?retryWrites=true&w=majority&appName=maincluster" -n anomaly-detection
 ```
 
-#### **5️⃣ Apply YAML to openshift**
-using `oc apply -f [file]`:
-1. Apply `deployment.yaml`
-2. Apply `service.yaml`
-3. Apply `route.yaml`
+#### **5️⃣ Apply OpenShift YAML Files**
+Deploy the application using:
+```sh
+oc apply -f deployment.yaml
+oc apply -f service.yaml
+oc apply -f route.yaml
+```
 
-   
-#### **6️⃣ Verify Deplyment & Test API Locally**
+#### **6️⃣ Verify Deployment & Test API**
+Check if the pods are running:
 ```sh
 oc get pods -n anomaly-detection
 ```
-Check logs if things explode:
+If things go sideways, check the logs:
 ```sh
 oc logs -f deployment/anomaly-detection -n anomaly-detection
 ```
 
-<br>
+---
 
+## **2. Debugging & Common Issues**
+If tests fail, the testing functions are likely the culprit. Comment them out and move on. 
 
-## **2. Debug - Problems Encountered**
-If tests fail, comment out testing functions. They are clearly the problem. 😎
-
-### **Common Errors & Fixes**
-
-| Error ID | Error Title |
-|----------|------------|
+| Error ID | Issue |
+|----------|--------------------------------------|
 | [1] | MongoDB Authentication Failure |
 | [2] | OpenShift Route Not Working |
 | [3] | SSL Handshake Failure |
 | [4] | Internal Server Error on `/detect-anomalies` |
 
-See appendix for more details
+### **Solutions**
+#### **[1] MongoDB Authentication Failure**
+- **Cause:** Connection refused, authentication issues, or timeouts.
+- **Fix:** Whitelist OpenShift’s IP in MongoDB Atlas or allow open access for debugging.
 
-<br>
----
-<br>
+#### **[2] OpenShift Route Not Working**
+- **Cause:** Requests timeout externally but work inside the pod.
+- **Fix:** Ensure `oc expose svc/anomaly-detection` exposes port **8080**, not **80**.
 
-## **3. Documentation**
+#### **[3] SSL Handshake Failure**
+- **Cause:** PyMongo throwing `SSL: TLSV1_ALERT_INTERNAL_ERROR`.
+- **Fix:** Install the latest OpenSSL and explicitly set `SSL_CERT_FILE`.
 
-## **3. Documentation**
-
-### **3.1 Code Structure**
-- `app.py`: Main application entry point
-- `routes.py`: API endpoints & logic
-- `models.py`: Data models for API requests
-- `db.py`: Database connection functions
-- `services/`: Business logic and processing functions
-- `metrics/`: Fairness and evaluation metrics implementations
-- `tests/`: Unit tests for API functions and services
-
-
-### **3.2 Why These Choices?**
-✔ **NumPy over SciPy** → Avoid `norm.pdf()` and maths issues that kept me up at night 
-✔ **MongoDB instead of MinIO** → Persistence without waiting 2 hours for minIO operator to install, google firebase is okay too
-<br>
+#### **[4] Internal Server Error on `/detect-anomalies`**
+- **Cause:** NumPy-related scalar conversion errors.
+- **Fix:** Replace `norm.pdf()` with direct NumPy calculations.
 
 ---
 
-<br>
+## **3. Code Structure & Design Choices**
 
-# OpenShift Deployment YAML Explained
+### **3.1 Code Layout**
+- `app.py` → Main application entry point
+- `routes.py` → API endpoints & logic
+- `models.py` → API request data models
+- `db.py` → Database connection functions
+- `services/` → Core business logic
+- `metrics/` → Fairness and evaluation metric implementations
+- `tests/` → Unit tests
 
-## **Deployment (`deployment.yaml`)**
-This file defines the **OpenShift Deployment** for the `anomaly-detection` service.
-This deployment **runs a single instance** of `anomaly-detection`, using the latest container image from Quay.io, **exposing port 8080**.
-I broke it down into different parts to understand it.
+### **3.2 Design Decisions**
+✔ **NumPy over SciPy** → Avoided `norm.pdf()` and other precision issues that haunted me at night.
+✔ **MongoDB over MinIO** → Persistent storage without spending **two hours installing the MinIO operator**. Google Firestore is also a valid alternative.
+
+---
+
+## **4. OpenShift Deployment Breakdown**
+### **4.1 Deployment (`deployment.yaml`)**
+Defines how OpenShift deploys `anomaly-detection`, running a single instance and exposing port **8080**.
 
 ```yaml
 metadata:
   name: anomaly-detection
   namespace: anomaly-detection
 ```
-- `name`: Specifies the **name of the deployment** (`anomaly-detection`).
-- `namespace`: Defines the **namespace** where this deployment is created (`anomaly-detection`).
 
 ```yaml
 spec:
   replicas: 1
 ```
-- `replicas`: Specifies **how many instances (pods) of the application** should run at the same time. Here, it's set to **1**.
-
-```yaml
-  selector:
-    matchLabels:
-      app: anomaly-detection
-```
-- This ensures that the deployment manages pods that **match the given labels** (`app: anomaly-detection`).
-
-```yaml
-  template:
-    metadata:
-      labels:
-        app: anomaly-detection
-```
-- The `template` defines **how each pod is structured**.
-- `labels` help OpenShift **identify and group pods** under the `anomaly-detection` app.
 
 ```yaml
     spec:
       containers:
       - name: anomaly-detection
-        image: quay.io/ncarcasc/anomaly-detection:latest 
+        image: quay.io/ncarcasc/anomaly-detection:latest
         ports:
         - containerPort: 8080
 ```
-- `containers`: Defines the **main container running in the pod**.
-- `name`: Name of the container (`anomaly-detection`).
-- `image`: Specifies the **Docker image** used to run the container. Here, it's hosted on Quay.io (`quay.io/ncarcasc/anomaly-detection:latest`).
-- `containerPort`: Defines the **port inside the container** that the application will listen on (`8080`).
 
-```yaml
-        resources:
-          limits:
-            cpu: "500m"
-            memory: "512Mi"
-          requests:
-            cpu: "250m"
-            memory: "256Mi"
-```
-- **Requests**: The **minimum resources** the container needs to start.
-  - `cpu: "250m"` → **250 millicores** (0.25 CPU core).
-  - `memory: "256Mi"` → **256 Megabytes** of RAM.
-- **Limits**: The **maximum resources** the container is allowed to use.
-  - `cpu: "500m"` → **500 millicores** (0.5 CPU core).
-  - `memory: "512Mi"` → **512 Megabytes** of RAM.
-
-
-## **Service (`service.yaml`)**
-
-The **Service (`service.yaml`)** exposes `anomaly-detection` **inside OpenShift** on port **80 → 8080**.
-
-### **What is this?**
-A **Service** in OpenShift exposes a set of pods as a network service. It allows internal communication between components inside the cluster.
-
-### **Key Sections**
-```yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: anomaly-detection
-  namespace: anomaly-detection
-```
-- `apiVersion`: Defines this as a **core Kubernetes Service resource**.
-- `kind`: Specifies that this is a **Service**.
-- `name`: The **name of the service** (`anomaly-detection`).
-- `namespace`: The **namespace** where this service is deployed.
+### **4.2 Service (`service.yaml`)**
+Exposes the application **internally** on **port 80 → 8080**.
 
 ```yaml
 spec:
   selector:
     app: anomaly-detection
-```
-- `selector`: This ensures the service routes traffic to pods **labeled as `app: anomaly-detection`**.
-
-```yaml
   ports:
     - protocol: TCP
       port: 80
       targetPort: 8080
-```
-- `port`: **External port** for the service (used internally in OpenShift).
-- `targetPort`: **Port inside the container** where the application is running (**8080** in our case).
-
-```yaml
   type: ClusterIP
 ```
-- **`ClusterIP` (default)** → This makes the service accessible **only inside the OpenShift cluster**.
 
----
-
-## **Route (`route.yaml`)**
-The **Route (`route.yaml`)** exposes `anomaly-detection` **externally** over **HTTPS (Edge Termination)**.
-### **What is this?**
-An **OpenShift Route** exposes the application to the external world via a public URL.
-
-### **Key Sections**
-```yaml
-apiVersion: route.openshift.io/v1
-kind: Route
-metadata:
-  name: anomaly-detection
-  namespace: anomaly-detection
-```
-- `apiVersion`: Defines this as an **OpenShift Route resource**.
-- `kind`: Specifies that this is a **Route** (not a Service or Deployment).
-- `name`: The **name of the route** (`anomaly-detection`).
-- `namespace`: The **namespace** where this route is created.
+### **4.3 Route (`route.yaml`)**
+Exposes the service **externally** over HTTPS (Edge Termination).
 
 ```yaml
 spec:
   to:
     kind: Service
     name: anomaly-detection
-```
-- This **connects the route to the Service named `anomaly-detection`**.
-- Requests to this route are forwarded **to the internal service**.
-
-```yaml
   port:
     targetPort: 8080
-```
-- Ensures the route forwards traffic **to port 8080 inside the service**.
-
-```yaml
   tls:
     termination: edge
 ```
-- Enables **TLS (HTTPS) encryption** with **Edge Termination**:
-  - **Edge termination** → The connection is encrypted **until OpenShift**, but then it becomes **plain HTTP inside the cluster**.
-<br>
 
 ---
 
-<br>
+## **5. Useful OpenShift Commands**
 
-## **Appendix A: Debugging Errors**
-
-<br>
-
-<br>
-
-### **[1] MongoDB Authentication Failure**
-- **What it was:** Connection refused, authentication errors or timeout issues if not properly error handled.
-- **Fix:** Whitelist OpenShift IP in MongoDB, get IP of pod through terminal, or set free access.
-  
-<br>
-
-### **[2] OpenShift Route Not Working**
-- **What it was:** Requests timeout externally but work inside the pod.
-- **Fix:** Ensure `oc expose svc/anomaly-detection` exposes **port 8080**, not **80**.
-  
-<br>
-
-### **[3] SSL Handshake Failure**
-- **What it was:** PyMongo throwing `SSL: TLSV1_ALERT_INTERNAL_ERROR`
-- **Fix:** Install latest OpenSSL, export `SSL_CERT_FILE` path.
-  
-<br>
-
-### **[4] Internal Server Error on `/detect-anomalies`**
-- **What it was:** NumPy throwing weird scalar conversion errors.
-- **Fix:** Replaced `norm.pdf()` with explicit NumPy calculations.
-  
-<br>
-
-## ** Some other useful commands I used**
-
-| Command | Description |
-|---------|------------|
-| `oc logs -f deployment/anomaly-detection -n anomaly-detection` | View logs live |
+| Command | Purpose |
+|---------|---------|
+| `oc logs -f deployment/anomaly-detection -n anomaly-detection` | View live logs |
 | `oc exec -it <pod-name> -- python3` | Debug inside the pod |
 | `oc rollout restart deployment/anomaly-detection -n anomaly-detection` | Redeploy after changes |
 
+---
+
+This documentation balances **depth and clarity** while keeping the energy high. If something breaks, well, that’s what logs are for. 🚀
